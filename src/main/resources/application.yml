@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: musicdemo1-server
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/musicdemo1?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:musicdemo1-local-development-signing-key-change-before-production}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+  bootstrap-admin:
+    username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
+  upload-dir: ${UPLOAD_DIR:./uploads}

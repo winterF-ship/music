@@ -1,0 +1,85 @@
+.player-tool-button:disabled { opacity:.34; cursor:not-allowed; }
+.el-dialog.fullscreen-player-dialog { --fullscreen-ink:#effff0; --fullscreen-muted:rgba(239,255,240,.58); margin:0; padding:0; color:var(--fullscreen-ink); background:#294847; }
+.fullscreen-player-dialog .el-dialog__header { display:none; }
+.fullscreen-player-dialog .el-dialog__body { height:100%; padding:0; }
+.fullscreen-player { position:relative; height:100dvh; overflow:hidden; display:grid; grid-template-rows:auto minmax(0,1fr) auto; isolation:isolate; background:radial-gradient(circle at 25% 48%,rgba(110,211,207,.22),transparent 32rem),linear-gradient(135deg,#2e5150,#183332); }
+.fullscreen-player-backdrop { position:absolute; z-index:-2; inset:-50px; background-position:center; background-size:cover; filter:blur(44px) saturate(.75); opacity:.22; transform:scale(1.08); }
+.fullscreen-player::after { position:absolute; z-index:-1; inset:0; content:""; background:linear-gradient(90deg,rgba(23,49,48,.35),rgba(23,49,48,.78)); }
+.fullscreen-player-header { min-height:82px; padding:18px clamp(20px,4vw,54px); display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:16px; border-bottom:1px solid rgba(239,255,240,.1); }
+.fullscreen-player-header > div { min-width:0; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.fullscreen-player-header small { color:var(--fullscreen-muted); font-size:10px; letter-spacing:.18em; }
+.fullscreen-player-header strong { max-width:42vw; overflow:hidden; font-size:14px; text-overflow:ellipsis; white-space:nowrap; }
+.fullscreen-player-mark { color:rgba(239,255,240,.42); font-size:11px; font-weight:800; letter-spacing:.24em; }
+.fullscreen-round-button,.fullscreen-actions button { display:grid; place-items:center; color:var(--fullscreen-ink); border:1px solid rgba(239,255,240,.15); border-radius:50%; background:rgba(239,255,240,.06); cursor:pointer; transition:transform .2s ease,background .2s ease; }
+.fullscreen-round-button { width:44px; height:44px; }
+.fullscreen-round-button:hover,.fullscreen-actions button:hover:not(:disabled) { background:rgba(110,211,207,.18); transform:translateY(-2px); }
+.fullscreen-round-button:focus-visible,.fullscreen-actions button:focus-visible,.lyric-line:focus-visible { outline:3px solid rgba(110,211,207,.65); outline-offset:3px; }
+.fullscreen-player-stage { width:min(1180px,100%); min-height:0; margin:auto; padding:clamp(24px,5vh,58px) clamp(26px,6vw,78px); display:grid; grid-template-columns:minmax(280px,.82fr) minmax(360px,1.18fr); align-items:center; gap:clamp(55px,9vw,130px); }
+.fullscreen-album { position:relative; min-width:0; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.fullscreen-record { position:relative; width:min(390px,34vw,42vh); aspect-ratio:1; padding:12%; border-radius:50%; background:repeating-radial-gradient(circle,#152827 0 3px,#203a39 4px 7px); box-shadow:0 35px 85px rgba(4,19,18,.45),inset 0 0 0 1px rgba(239,255,240,.12); }
+.fullscreen-record::after { position:absolute; inset:47%; content:""; border-radius:50%; background:#d7ffe0; box-shadow:0 0 0 8px rgba(110,211,207,.38); }
+.fullscreen-record .media-cover { border-radius:50%; box-shadow:0 15px 38px rgba(0,0,0,.3); }
+.fullscreen-record.spinning { animation:record-spin 18s linear infinite; }
+.turntable-arm { --arm-rest:rotate(-18deg); --arm-play:rotate(0deg); position:absolute; z-index:2; top:clamp(16px,5vh,48px); left:calc(50% + min(195px,17vw,21vh) - 12px); width:clamp(155px,17vw,210px); height:clamp(155px,17vw,210px); transform:var(--arm-rest); transform-origin:12px 12px; transition:transform .55s cubic-bezier(.22,.8,.25,1); pointer-events:none; }
+.turntable-arm.lowered { transform:var(--arm-play); }
+.turntable-arm-base { position:absolute; top:0; left:0; width:23px; height:23px; border:1px solid rgba(239,255,240,.34); border-radius:50%; background:#1b3534; box-shadow:0 4px 13px rgba(4,19,18,.35),inset 0 0 0 5px rgba(110,211,207,.1); }
+.turntable-arm-base::after { position:absolute; top:8px; left:8px; width:7px; height:7px; content:""; border-radius:50%; background:#6ed3cf; box-shadow:0 0 0 3px rgba(110,211,207,.13); }
+.turntable-arm-bar { position:absolute; top:10px; left:12px; width:clamp(126px,13.5vw,170px); height:8px; border:1px solid rgba(239,255,240,.22); border-radius:999px; background:linear-gradient(90deg,#9ce4dc,#eaffdf 72%,#7db8b1); box-shadow:0 4px 12px rgba(4,19,18,.32); transform:rotate(132deg); transform-origin:left center; }
+.turntable-arm-head { position:absolute; right:-4px; top:-5px; width:24px; height:18px; border:1px solid rgba(239,255,240,.24); border-radius:4px 3px 7px 7px; background:#254947; box-shadow:0 5px 11px rgba(4,19,18,.35); transform:rotate(-12deg); }
+.turntable-arm-head::after { position:absolute; right:3px; bottom:-10px; width:2px; height:12px; content:""; border-radius:999px; background:#6ed3cf; box-shadow:0 0 0 1px rgba(239,255,240,.16); transform:rotate(12deg); transform-origin:top center; }
+@keyframes record-spin { to { transform:rotate(360deg); } }
+.fullscreen-song-copy h2 { margin:26px 0 7px; overflow-wrap:anywhere; font-size:clamp(25px,3vw,42px); letter-spacing:-.035em; }
+.fullscreen-song-copy p { margin:0; color:var(--fullscreen-muted); }
+.fullscreen-lyrics { position:relative; min-height:0; height:min(58vh,570px); overflow-x:hidden; overflow-y:auto; scrollbar-width:none; mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent); }
+.fullscreen-lyrics::-webkit-scrollbar { display:none; }
+.fullscreen-lyrics:focus-visible { outline:1px solid rgba(110,211,207,.48); outline-offset:6px; }
+.lyrics-track { min-height:100%; padding:42% 18px 42% 2px; display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+.lyric-line { position:relative; width:100%; padding:9px 0 9px 16px; color:rgba(239,255,240,.28); font-family:inherit; font-size:clamp(17px,1.75vw,22px); font-weight:560; line-height:1.55; text-align:left; border:0; border-left:2px solid transparent; background:transparent; cursor:pointer; transition:color .2s ease,border-color .2s ease,opacity .2s ease; }
+.lyric-line:hover { color:rgba(239,255,240,.68); }
+.lyric-line.passed { color:rgba(239,255,240,.18); }
+.lyric-line.active { color:#f3fee7; border-left-color:#6ed3cf; font-size:clamp(21px,2.2vw,29px); font-weight:720; }
+.lyrics-state,.fullscreen-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--fullscreen-muted); text-align:center; }
+.lyrics-state strong,.fullscreen-empty strong { color:var(--fullscreen-ink); font-size:22px; }
+.lyrics-state .el-icon { color:#6ed3cf; font-size:28px; }
+.fullscreen-empty { padding:40px; }
+.fullscreen-player-controls { padding:18px clamp(24px,6vw,78px) max(24px,env(safe-area-inset-bottom)); border-top:1px solid rgba(239,255,240,.1); background:rgba(18,42,41,.45); }
+.fullscreen-progress { width:min(850px,100%); margin:0 auto 12px; display:grid; grid-template-columns:42px minmax(0,1fr) 42px; align-items:center; gap:12px; color:var(--fullscreen-muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.fullscreen-progress span:last-child { text-align:right; }
+.fullscreen-progress .el-slider__runway { background:rgba(239,255,240,.16); }
+.fullscreen-progress .el-slider__bar { background:#6ed3cf; }
+.fullscreen-progress .el-slider__button { width:14px; height:14px; border:0; background:#f3fee7; }
+.fullscreen-actions { display:flex; align-items:center; justify-content:center; gap:18px; }
+.fullscreen-actions button { width:42px; height:42px; }
+.fullscreen-actions button:disabled { opacity:.35; cursor:not-allowed; }
+.fullscreen-actions .fullscreen-play-button { width:60px; height:60px; color:#294847; border-color:rgba(243,254,231,.45); background:#6ed3cf; box-shadow:0 12px 28px rgba(4,24,23,.28); }
+.lyric-upload-field { width:100%; display:flex; align-items:center; gap:10px; }
+.lyric-upload-field + .el-progress { width:100%; margin-top:10px; }
+.table-muted { color:var(--el-text-color-placeholder); }
+@media (max-width:700px) {
+  .fullscreen-player-header { min-height:68px; padding:10px 14px; grid-template-columns:44px 1fr 44px; }
+  .fullscreen-player-mark { overflow:hidden; font-size:0; }
+  .fullscreen-player-mark::after { content:"E"; font-size:11px; }
+  .fullscreen-player-header strong { max-width:58vw; }
+  .fullscreen-player-stage { align-self:stretch; margin:0 auto; padding:12px 20px; overflow:hidden; grid-template-columns:1fr; grid-template-rows:minmax(0,.75fr) minmax(0,1fr); gap:12px; }
+  .fullscreen-album { min-height:0; overflow:hidden; }
+  .fullscreen-record { width:min(180px,46vw,24vh); padding:11%; }
+  .turntable-arm { --arm-rest:rotate(-16deg); width:min(126px,32vw); height:min(126px,32vw); top:clamp(5px,2vh,18px); left:calc(50% + min(90px,23vw) - 8px); transform-origin:9px 9px; }
+  .turntable-arm-base { width:18px; height:18px; }
+  .turntable-arm-base::after { top:6px; left:6px; width:6px; height:6px; }
+  .turntable-arm-bar { top:8px; left:9px; width:min(102px,25vw); height:6px; }
+  .turntable-arm-head { right:-3px; top:-4px; width:18px; height:14px; }
+  .turntable-arm-head::after { right:2px; bottom:-8px; height:10px; }
+  .fullscreen-song-copy h2 { margin:13px 0 4px; font-size:23px; }
+  .fullscreen-lyrics { width:100%; height:100%; min-height:0; }
+  .lyrics-track { padding:34% 0; align-items:center; }
+  .lyrics-track { padding-inline:0; align-items:center; }
+  .lyric-line { padding:7px 10px 11px; font-size:16px; text-align:center; border-left:0; }
+  .lyric-line.active { font-size:21px; }
+  .lyric-line.active::after { position:absolute; bottom:2px; left:50%; width:28px; height:2px; content:""; border-radius:999px; background:#6ed3cf; transform:translateX(-50%); }
+  .fullscreen-player-controls { padding:12px 18px max(16px,env(safe-area-inset-bottom)); }
+  .fullscreen-progress { margin-bottom:6px; }
+  .fullscreen-actions { gap:14px; }
+  .fullscreen-actions button { width:38px; height:38px; }
+  .fullscreen-actions .fullscreen-play-button { width:54px; height:54px; }
+}
+@media (prefers-reduced-motion:reduce) { .fullscreen-record.spinning { animation:none; } .turntable-arm { transition:none; } }

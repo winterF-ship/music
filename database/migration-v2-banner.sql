@@ -1,0 +1,14 @@
+USE `musicdemo1`;
+
+CREATE TABLE IF NOT EXISTS `banner` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(150) NOT NULL,
+  `image_url` VARCHAR(255) NOT NULL,
+  `target_url` VARCHAR(255) DEFAULT NULL,
+  `sort_no` INT NOT NULL DEFAULT 0,
+  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_banner_status_sort` (`status`, `sort_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='首页轮播图';
