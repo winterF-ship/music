@@ -1,9 +1,12 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { addPlaylistSong, createPlaylist, deletePlaylist, fetchPlaylist, fetchPlaylists, fetchSongs, removePlaylistSong, updatePlaylist } from '../api/admin'
 import AdminImageUpload from '../components/AdminImageUpload.vue'
 
+const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const keyword = ref('')
@@ -33,7 +36,14 @@ async function remove(row) { try { await ElMessageBox.confirm(`删除歌单“${
 async function openSongs(row) { selectedPlaylist.value = row; selectedSongId.value = undefined; const result = await fetchPlaylist(row.id); if (result.code !== 200) { ElMessage.error(result.message); return }; playlistSongs.value = result.data.songs; songsDialogOpen.value = true }
 async function addSong() { if (!selectedPlaylist.value || !selectedSongId.value) { ElMessage.warning('请选择歌曲'); return }; try { const result = await addPlaylistSong(selectedPlaylist.value.id, selectedSongId.value); if (result.code !== 200) throw new Error(result.message); playlistSongs.value = result.data.songs; selectedSongId.value = undefined; ElMessage.success('歌曲已加入歌单') } catch (error) { ElMessage.error(error instanceof Error ? error.message : '加入失败') } }
 async function removeSong(song) { if (!selectedPlaylist.value) return; try { const result = await removePlaylistSong(selectedPlaylist.value.id, song.id); if (result.code !== 200) throw new Error(result.message); playlistSongs.value = result.data.songs; ElMessage.success('歌曲已移出歌单') } catch (error) { ElMessage.error(error instanceof Error ? error.message : '移除失败') } }
-onMounted(() => { void Promise.all([load(), loadSongs()]) })
+onMounted(async () => {
+  await Promise.allSettled([load(), loadSongs()])
+  if (route.query.action === 'create') openCreate()
+  if (route.query.action === 'create' || route.query.edit) {
+    const { action, edit, ...query } = route.query
+    await router.replace({ path: route.path, query })
+  }
+})
 </script>
 
 <template>

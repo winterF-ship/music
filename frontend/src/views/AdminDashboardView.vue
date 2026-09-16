@@ -1,12 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ArrowUpRight, Check, ChevronRight, CircleAlert, ImagePlus, ListMusic, Mic2, Music2, Plus, RefreshCw, UsersRound } from '@lucide/vue'
-import { fetchBanners, fetchDashboardSummary, fetchPlaylists, fetchSingers, fetchSongs, fetchUsers } from '../api/admin'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { ChartNoAxesCombined, ChevronRight, CircleAlert, ImagePlus, ListMusic, Mic2, Music2, RefreshCw, UsersRound } from '@lucide/vue'
+import { fetchDashboardSummary, fetchPlaylists, fetchSingers, fetchSongs, fetchUsers } from '../api/admin'
 import MediaCover from '../components/MediaCover.vue'
 
 const loading = ref(false)
-const router = useRouter()
 const summaryError = ref('')
 const lastUpdated = ref('')
 const requestSerial = ref(0)
@@ -15,49 +13,23 @@ let disposed = false
 const summary = ref({ users: 0, singers: 0, songs: 0, playlists: 0 })
 const recentSongs = ref([])
 const recentUsers = ref([])
-const bannerTotal = ref(0)
-const sectionStatus = reactive({ songs: 'idle', users: 'idle', banners: 'idle' })
-const sectionErrors = reactive({ songs: '', users: '', banners: '' })
+const sectionStatus = reactive({ songs: 'idle', users: 'idle' })
+const sectionErrors = reactive({ songs: '', users: '' })
 
 const countFormatter = new Intl.NumberFormat('zh-CN')
-const todayLabel = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })
-
-const stats = computed(() => [
-  { key: 'users', label: '注册用户', description: '可登录的用户账号', icon: UsersRound, accent: 'mint', to: '/admin/users' },
-  { key: 'singers', label: '歌手', description: '内容库中的音乐人', icon: Mic2, accent: 'lilac', to: '/admin/artists' },
-  { key: 'songs', label: '歌曲', description: '已登记的音频资源', icon: Music2, accent: 'peach', to: '/admin/songs' },
-  { key: 'playlists', label: '歌单', description: '正在维护的歌单集合', icon: ListMusic, accent: 'gold', to: '/admin/playlists' },
-])
-
-const healthItems = computed(() => [
-  {
-    label: '歌曲资源',
-    value: formatCount(summary.value.songs),
-    note: summary.value.songs ? '音频目录已建立' : '还没有歌曲，先录入第一首',
-    tone: summary.value.songs ? 'ready' : 'attention',
-    to: '/admin/songs',
-  },
-  {
-    label: '歌手资料',
-    value: formatCount(summary.value.singers),
-    note: summary.value.singers ? '歌手归属可正常维护' : '歌曲需要先关联歌手',
-    tone: summary.value.singers ? 'ready' : 'attention',
-    to: '/admin/artists',
-  },
-  {
-    label: '首页轮播',
-    value: formatCount(bannerTotal.value),
-    note: bannerTotal.value ? '首页内容位已配置' : '暂无首页视觉内容',
-    tone: bannerTotal.value ? 'ready' : 'attention',
-    to: '/admin/banners',
-  },
-])
-
-const bannerSummary = computed(() => {
-  if (sectionStatus.banners === 'error') return '轮播数据同步失败'
-  if (!bannerTotal.value) return '还没有配置首页轮播位'
-  return `共 ${formatCount(bannerTotal.value)} 个轮播条目已配置`
-})
+const stats = [
+  { key: 'users', label: '注册用户', to: '/admin/users' },
+  { key: 'singers', label: '歌手', to: '/admin/artists' },
+  { key: 'songs', label: '歌曲', to: '/admin/songs' },
+  { key: 'playlists', label: '歌单', to: '/admin/playlists' },
+]
+const actions = [
+  { label: '新增歌曲', icon: Music2, to: '/admin/songs?action=create' },
+  { label: '新增歌手', icon: Mic2, to: '/admin/artists?action=create' },
+  { label: '创建歌单', icon: ListMusic, to: '/admin/playlists?action=create' },
+  { label: '管理轮播图', icon: ImagePlus, to: '/admin/banners' },
+  { label: '查看数据统计', icon: ChartNoAxesCombined, to: '/admin/analytics' },
+]
 
 function formatCount(value) {
   return countFormatter.format(Number(value) || 0)
@@ -84,16 +56,13 @@ async function load() {
   summaryError.value = ''
   sectionErrors.songs = ''
   sectionErrors.users = ''
-  sectionErrors.banners = ''
   sectionStatus.songs = 'loading'
   sectionStatus.users = 'loading'
-  sectionStatus.banners = 'loading'
 
   const results = await Promise.allSettled([
     fetchDashboardSummary(),
     fetchSongs({ page: 1, size: 6 }),
     fetchUsers({ page: 1, size: 5 }),
-    fetchBanners({ page: 1, size: 6 }),
     fetchSingers({ page: 1, size: 1 }),
     fetchPlaylists({ page: 1, size: 1 }),
   ])
@@ -123,24 +92,16 @@ async function load() {
     setSectionError('users', error, '用户列表加载失败')
   }
 
-  try {
-    const bannersPage = readResult(results[3], '轮播列表加载失败')
-    bannerTotal.value = bannersPage.total ?? bannersPage.records?.length ?? 0
-    sectionStatus.banners = 'ready'
-  } catch (error) {
-    setSectionError('banners', error, '轮播列表加载失败')
-  }
-
   // Keep the small management pages' totals in sync with the dashboard endpoint even
   // when an older backend has not added those fields to its dashboard response yet.
   try {
-    const singersPage = readResult(results[4], '歌手列表加载失败')
+    const singersPage = readResult(results[3], '歌手列表加载失败')
     if (summary.value.singers === 0 && singersPage.total) summary.value = { ...summary.value, singers: singersPage.total }
   } catch {
     // The dashboard summary remains the source of truth when this compatibility read fails.
   }
   try {
-    const playlistsPage = readResult(results[5], '歌单列表加载失败')
+    const playlistsPage = readResult(results[4], '歌单列表加载失败')
     if (summary.value.playlists === 0 && playlistsPage.total) summary.value = { ...summary.value, playlists: playlistsPage.total }
   } catch {
     // The dashboard summary remains the source of truth when this compatibility read fails.
@@ -150,94 +111,60 @@ async function load() {
   loading.value = false
 }
 
-function goTo(path) {
-  void router.push(path)
-}
-
 onMounted(() => { void load() })
 onBeforeUnmount(() => { disposed = true })
 </script>
 
 <template>
-  <section class="admin-page dashboard-page">
-    <div class="dashboard-hero">
-      <div class="dashboard-hero-copy">
-        <p class="dashboard-eyebrow">CONTROL ROOM / {{ todayLabel.format(new Date()).toUpperCase() }}</p>
-        <h1>让每一首声音，都有位置。</h1>
-        <p class="dashboard-hero-description">这里是回声唱片的内容控制室。录入音乐、整理歌手与歌单，让前台每一次播放都有可靠的内容可抵达。</p>
-        <div class="dashboard-hero-actions">
-          <el-button type="primary" class="dashboard-primary-action" @click="goTo('/admin/songs')"><Plus :size="16" />录入新歌曲</el-button>
-          <el-button class="dashboard-secondary-action" @click="goTo('/admin/analytics')">查看数据 <ArrowUpRight :size="16" /></el-button>
-        </div>
+  <section class="admin-page overview-page" aria-label="后台概览">
+    <div class="overview-update">
+      <span role="status">{{ lastUpdated ? `更新于 ${lastUpdated}` : '正在获取数据' }}</span>
+      <el-button text :loading="loading" @click="load"><RefreshCw :size="14" />刷新数据</el-button>
+    </div>
+    <div v-if="summaryError" class="overview-error" role="alert">
+      <CircleAlert :size="18" /><span>概览数据加载失败：{{ summaryError }}</span>
+      <el-button text :disabled="loading" @click="load">重试</el-button>
+    </div>
+    <nav v-loading="loading" class="overview-stats" aria-label="内容概况">
+      <RouterLink v-for="stat in stats" :key="stat.key" :to="stat.to" class="overview-stat">
+        <span>{{ stat.label }}</span><strong>{{ summaryError ? '—' : formatCount(summary[stat.key]) }}</strong>
+      </RouterLink>
+    </nav>
+
+    <section class="overview-panel overview-songs" aria-labelledby="recent-songs-title">
+      <header class="overview-panel-heading"><h2 id="recent-songs-title">最近收录</h2><RouterLink to="/admin/songs">全部歌曲<ChevronRight :size="15" /></RouterLink></header>
+      <div v-if="sectionStatus.songs === 'error'" class="overview-empty" role="alert"><CircleAlert :size="24" /><p>{{ sectionErrors.songs }}</p><el-button :disabled="loading" @click="load">重新加载</el-button></div>
+      <div v-else v-loading="loading" class="overview-table-scroll" tabindex="0" aria-label="最近收录歌曲表格">
+        <table class="overview-table">
+          <thead><tr><th scope="col" class="overview-index">#</th><th scope="col" class="overview-cover-col">封面</th><th scope="col">歌曲名称</th><th scope="col">歌手</th><th scope="col">歌词</th><th scope="col" class="overview-operation">操作</th></tr></thead>
+          <tbody><tr v-for="(song, index) in recentSongs" :key="song.id">
+            <td class="overview-index">{{ index + 1 }}</td>
+            <td><MediaCover :src="song.coverUrl" :alt="`${song.title}封面`" :label="song.title" /></td>
+            <td class="overview-title"><span :title="song.title">{{ song.title }}</span></td>
+            <td><span class="overview-ellipsis" :title="song.singerName">{{ song.singerName || '未设置歌手' }}</span></td>
+            <td><span class="overview-status" :class="{ 'is-missing': !song.lyricUrl }">{{ song.lyricUrl ? '已上传' : '未上传' }}</span></td>
+            <td><RouterLink :to="{ path: '/admin/songs', query: { edit: song.id } }" :aria-label="`编辑歌曲：${song.title}`">编辑<ChevronRight :size="14" /></RouterLink></td>
+          </tr></tbody>
+        </table>
+        <div v-if="!recentSongs.length" class="overview-empty"><Music2 :size="26" /><p>{{ loading ? '正在加载歌曲…' : '还没有收录歌曲' }}</p><RouterLink v-if="!loading" to="/admin/songs?action=create">新增第一首歌曲</RouterLink></div>
       </div>
-      <div class="dashboard-hero-art" aria-hidden="true">
-        <div class="dashboard-orbit dashboard-orbit-outer"><div class="dashboard-orbit dashboard-orbit-inner"><Music2 :size="38" stroke-width="1.6" /></div></div>
-        <div class="dashboard-live-badge"><span></span> LIVE CATALOG</div>
-        <div class="dashboard-hero-count"><strong>{{ loading ? '—' : formatCount(summary.songs) }}</strong><span>首歌曲在声场中</span></div>
-      </div>
-    </div>
+    </section>
 
-    <div v-if="summaryError" class="dashboard-error" role="alert">
-      <div><strong>概览数据暂时不可用</strong><p>{{ summaryError }}</p></div>
-      <el-button type="danger" plain :loading="loading" @click="load">重新加载</el-button>
-    </div>
-
-    <div class="dashboard-section-heading">
-      <div><p class="eyebrow">LIBRARY PULSE</p><h2>内容库心电图</h2><p>掌握当前内容规模，再决定今天先补哪一块。</p></div>
-      <div class="dashboard-refresh"><span v-if="lastUpdated">更新于 {{ lastUpdated }}</span><el-button text :loading="loading" @click="load"><RefreshCw :size="15" />刷新数据</el-button></div>
-    </div>
-
-    <div v-loading="loading" class="dashboard-stats">
-      <el-card v-for="stat in stats" :key="stat.key" shadow="never" class="dashboard-stat-card">
-        <div class="dashboard-stat-top"><div class="dashboard-stat-icon" :class="`is-${stat.accent}`"><component :is="stat.icon" :size="19" /></div><span>{{ stat.label }}</span></div>
-        <strong>{{ formatCount(summary[stat.key]) }}</strong>
-        <div class="dashboard-stat-foot"><small>{{ stat.description }}</small><RouterLink :to="stat.to">管理 <ChevronRight :size="14" /></RouterLink></div>
-      </el-card>
-    </div>
-
-    <div class="dashboard-main-grid">
-      <el-card shadow="never" class="dashboard-card dashboard-recent-card">
-        <template #header><div class="dashboard-card-heading"><div><p class="eyebrow">RECENTLY ADDED</p><h3>最近收录</h3></div><RouterLink to="/admin/songs">全部歌曲 <ArrowUpRight :size="15" /></RouterLink></div></template>
-        <div v-if="sectionStatus.songs === 'error'" class="dashboard-inline-error"><CircleAlert :size="18" /><span>{{ sectionErrors.songs }}</span></div>
-        <div v-else-if="!recentSongs.length && !loading" class="dashboard-empty"><Music2 :size="26" /><strong>还没有歌曲</strong><p>录入第一首歌曲后，它会出现在这里。</p><RouterLink to="/admin/songs">去录入歌曲</RouterLink></div>
-        <div v-else class="dashboard-song-list">
-          <div v-for="(song, index) in recentSongs" :key="song.id" class="dashboard-song-row">
-            <span class="dashboard-song-index">{{ String(index + 1).padStart(2, '0') }}</span>
-            <MediaCover :src="song.coverUrl" :alt="`${song.title}封面`" :label="song.title" />
-            <div class="dashboard-song-copy"><strong>{{ song.title }}</strong><small>{{ song.singerName || '未命名歌手' }}</small></div>
-            <span class="dashboard-song-status" :class="song.lyricUrl ? 'is-ready' : 'is-muted'"><Check v-if="song.lyricUrl" :size="13" />{{ song.lyricUrl ? '歌词已配' : '未配歌词' }}</span>
-          </div>
+    <div class="overview-bottom">
+      <section class="overview-panel" aria-labelledby="recent-users-title">
+        <header class="overview-panel-heading"><h2 id="recent-users-title">最近注册</h2><RouterLink to="/admin/users">全部用户<ChevronRight :size="15" /></RouterLink></header>
+        <div v-if="sectionStatus.users === 'error'" class="overview-empty" role="alert"><CircleAlert :size="24" /><p>{{ sectionErrors.users }}</p><el-button :disabled="loading" @click="load">重新加载</el-button></div>
+        <div v-else v-loading="loading" class="overview-table-scroll" tabindex="0" aria-label="最近注册用户表格">
+          <table class="overview-table overview-user-table"><thead><tr><th scope="col" class="overview-index">#</th><th scope="col">用户名</th><th scope="col">状态</th></tr></thead>
+            <tbody><tr v-for="(user, index) in recentUsers" :key="user.id"><td class="overview-index">{{ index + 1 }}</td><td><span class="overview-ellipsis" :title="user.username">{{ user.username }}</span></td><td><span class="overview-status" :class="{ 'is-missing': user.status !== 1 }">{{ user.status === 1 ? '已启用' : '已禁用' }}</span></td></tr></tbody>
+          </table>
+          <div v-if="!recentUsers.length" class="overview-empty"><UsersRound :size="24" /><p>{{ loading ? '正在加载用户…' : '还没有注册用户' }}</p></div>
         </div>
-      </el-card>
-
-      <el-card shadow="never" class="dashboard-card dashboard-actions-card">
-        <template #header><div class="dashboard-card-heading"><div><p class="eyebrow">NEXT MOVES</p><h3>快捷入口</h3></div><span class="dashboard-heading-note">常用操作</span></div></template>
-        <nav class="dashboard-action-list" aria-label="后台快捷入口">
-          <RouterLink to="/admin/songs" class="dashboard-action-link"><span class="dashboard-action-icon is-peach"><Music2 :size="18" /></span><span><strong>录入新歌曲</strong><small>补齐音频、封面与歌词</small></span><ArrowUpRight :size="16" /></RouterLink>
-          <RouterLink to="/admin/artists" class="dashboard-action-link"><span class="dashboard-action-icon is-lilac"><Mic2 :size="18" /></span><span><strong>维护歌手资料</strong><small>整理音乐人的归属信息</small></span><ArrowUpRight :size="16" /></RouterLink>
-          <RouterLink to="/admin/playlists" class="dashboard-action-link"><span class="dashboard-action-icon is-gold"><ListMusic :size="18" /></span><span><strong>编排歌单</strong><small>组合前台可播放的内容集合</small></span><ArrowUpRight :size="16" /></RouterLink>
-          <RouterLink to="/admin/banners" class="dashboard-action-link"><span class="dashboard-action-icon is-mint"><ImagePlus :size="18" /></span><span><strong>更新首页轮播</strong><small>管理首页第一眼的视觉内容</small></span><ArrowUpRight :size="16" /></RouterLink>
-        </nav>
-      </el-card>
-    </div>
-
-    <div class="dashboard-bottom-grid">
-      <el-card shadow="never" class="dashboard-card dashboard-users-card">
-        <template #header><div class="dashboard-card-heading"><div><p class="eyebrow">ACCOUNT WATCH</p><h3>最近注册</h3></div><RouterLink to="/admin/users">用户管理 <ArrowUpRight :size="15" /></RouterLink></div></template>
-        <div v-if="sectionStatus.users === 'error'" class="dashboard-inline-error"><CircleAlert :size="18" /><span>{{ sectionErrors.users }}</span></div>
-        <div v-else-if="!recentUsers.length && !loading" class="dashboard-empty dashboard-empty-compact"><UsersRound :size="24" /><strong>还没有用户</strong><p>公开注册的账号会显示在这里。</p></div>
-        <div v-else class="dashboard-user-list">
-          <div v-for="user in recentUsers" :key="user.id" class="dashboard-user-row"><div class="dashboard-user-avatar">{{ (user.nickname || user.username || '用').slice(0, 1) }}</div><div class="dashboard-user-copy"><strong>{{ user.nickname || '未设置昵称' }}</strong><small>@{{ user.username }}</small></div><el-tag size="small" :type="user.status === 1 ? 'success' : 'info'">{{ user.status === 1 ? '已启用' : '已禁用' }}</el-tag></div>
-        </div>
-      </el-card>
-
-      <el-card shadow="never" class="dashboard-card dashboard-health-card">
-        <template #header><div class="dashboard-card-heading"><div><p class="eyebrow">SURFACE CHECK</p><h3>前台内容状态</h3></div><span class="dashboard-heading-note">实时检查</span></div></template>
-        <div class="dashboard-health-list">
-          <RouterLink v-for="item in healthItems" :key="item.label" :to="item.to" class="dashboard-health-row"><span class="dashboard-health-dot" :class="`is-${item.tone}`"><Check v-if="item.tone === 'ready'" :size="12" /><CircleAlert v-else :size="13" /></span><span class="dashboard-health-copy"><strong>{{ item.label }}</strong><small>{{ item.note }}</small></span><span class="dashboard-health-value">{{ item.value }}</span><ChevronRight :size="15" /></RouterLink>
-        </div>
-        <div class="dashboard-banner-summary"><span class="dashboard-banner-signal"></span><span>{{ bannerSummary }}</span><RouterLink to="/admin/banners">查看轮播</RouterLink></div>
-      </el-card>
+      </section>
+      <section class="overview-panel" aria-labelledby="quick-actions-title">
+        <header class="overview-panel-heading"><h2 id="quick-actions-title">常用操作</h2></header>
+        <nav class="overview-actions" aria-label="常用操作"><RouterLink v-for="action in actions" :key="action.label" :to="action.to"><component :is="action.icon" :size="19" /><span>{{ action.label }}</span><ChevronRight :size="16" /></RouterLink></nav>
+      </section>
     </div>
   </section>
 </template>

@@ -173,3 +173,8 @@ export async function fetchSongsBySinger() {
   const { data } = await api.get('/admin/analytics/songs-by-singer')
   return data
 }
+
+export async function fetchSongPlays() {
+  const { data } = await api.get('/admin/analytics/song-plays')
+  return data
+}

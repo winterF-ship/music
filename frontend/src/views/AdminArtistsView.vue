@@ -1,9 +1,12 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createSinger, deleteSinger, fetchSingers, updateSinger } from '../api/admin'
 import AdminImageUpload from '../components/AdminImageUpload.vue'
 
+const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const keyword = ref('')
@@ -48,7 +51,14 @@ async function remove(row) {
     await load()
   } catch (error) { if (error === 'cancel' || error === 'close') return; ElMessage.error(error instanceof Error ? error.message : '删除失败') }
 }
-onMounted(() => { void load() })
+onMounted(async () => {
+  await Promise.allSettled([load()])
+  if (route.query.action === 'create') openCreate()
+  if (route.query.action === 'create' || route.query.edit) {
+    const { action, edit, ...query } = route.query
+    await router.replace({ path: route.path, query })
+  }
+})
 </script>
 
 <template>

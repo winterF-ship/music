@@ -1,9 +1,13 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createSong, deleteSong, fetchSingers, fetchSongs, updateSong, uploadAudio, uploadLyrics } from '../api/admin'
+import { api } from '../api/http'
 import AdminImageUpload from '../components/AdminImageUpload.vue'
 
+const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const uploading = ref(false)
@@ -99,7 +103,21 @@ async function remove(row) {
     await load()
   } catch (error) { if (error === 'cancel' || error === 'close') return; ElMessage.error(error instanceof Error ? error.message : '删除失败') }
 }
-onMounted(() => { void Promise.all([load(), loadSingers()]) })
+onMounted(async () => {
+  await Promise.allSettled([load(), loadSingers()])
+  if (route.query.action === 'create') openCreate()
+  else if (typeof route.query.edit === 'string' && /^\d+$/.test(route.query.edit)) {
+    try {
+      const { data } = await api.get(`/admin/songs/${route.query.edit}`)
+      if (data.code !== 200) throw new Error(data.message)
+      openEdit(data.data)
+    } catch (error) { ElMessage.error(error instanceof Error ? error.message : '歌曲加载失败') }
+  }
+  if (route.query.action === 'create' || route.query.edit) {
+    const { action, edit, ...query } = route.query
+    await router.replace({ path: route.path, query })
+  }
+})
 </script>
 
 <template>

@@ -4,6 +4,7 @@ import { ArrowDown, ArrowLeftBold, ArrowRightBold, Loading } from '@element-plus
 import { assetUrl } from '../api/catalog'
 import { usePlayerStore } from '../stores/player'
 import { activeLyricIndex, parseLrc } from '../utils/lyrics'
+import { createIdleChrome } from '../utils/fullscreenControls'
 import MediaCover from './MediaCover.vue'
 import PlaybackIcon from './PlaybackIcon.vue'
 
@@ -13,7 +14,19 @@ const lyrics = ref([])
 const lyricState = ref('idle')
 const lyricItems = ref([])
 const lyricScroller = ref()
+const controlsVisible = ref(true)
 let lyricRequest
+
+// 播放中静置一段时间后自动收起底部控制条并隐藏光标，任意操作立刻唤回。
+const chrome = createIdleChrome()
+chrome.setHiddenHandler(() => { controlsVisible.value = false })
+const idleHidden = computed(() => !controlsVisible.value)
+const autoHideControls = computed(() => open.value && player.isPlaying && Boolean(player.currentSong))
+
+watch(autoHideControls, (value) => {
+  chrome.setActive(value)
+  controlsVisible.value = chrome.visible
+}, { immediate: true })
 
 const activeIndex = computed(() => activeLyricIndex(lyrics.value, player.currentTime))
 const progress = computed({ get: () => player.currentTime, set: (value) => player.seek(value) })
@@ -46,12 +59,57 @@ watch(activeIndex, async (index) => {
 })
 
 watch(open, async (visible) => {
-  if (!visible || activeIndex.value < 0) return
+  if (!visible) {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    window.removeEventListener('keydown', handleKeydown)
+    void exitNativeFullscreen()
+    return
+  }
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  window.addEventListener('keydown', handleKeydown)
+  if (activeIndex.value < 0) return
   await nextTick()
   scrollToLyric(activeIndex.value, 'auto')
 })
 
-onBeforeUnmount(() => lyricRequest?.abort())
+onBeforeUnmount(() => {
+  lyricRequest?.abort()
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  window.removeEventListener('keydown', handleKeydown)
+  chrome.stop()
+})
+
+function wakeControls() {
+  chrome.wake()
+  controlsVisible.value = chrome.visible
+}
+
+function handleKeydown(event) {
+  // 控制条收起后键盘依然可达：任意按键唤回，空格切换播放状态
+  wakeControls()
+  if (event.code !== 'Space' || event.repeat) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName))) return
+  event.preventDefault()
+  if (player.currentSong) player.toggle()
+}
+
+async function enterNativeFullscreen() {
+  if (typeof document === 'undefined' || document.fullscreenElement) return
+  const element = document.documentElement
+  if (typeof element.requestFullscreen !== 'function') return
+  try { await element.requestFullscreen() } catch { /* 浏览器拒绝时保持页面内全屏 */ }
+}
+
+async function exitNativeFullscreen() {
+  if (typeof document === 'undefined' || !document.fullscreenElement) return
+  try { await document.exitFullscreen?.() } catch { /* 已经退出时忽略 */ }
+}
+
+function handleFullscreenChange() {
+  // 用户按 ESC 离开浏览器全屏时，同步收起全屏播放器
+  if (!document.fullscreenElement && open.value) open.value = false
+}
 
 function formatTime(value) {
   if (!Number.isFinite(value)) return '0:00'
@@ -68,8 +126,8 @@ function scrollToLyric(index, behavior) {
 </script>
 
 <template>
-  <el-dialog v-model="open" fullscreen :show-close="false" append-to-body class="fullscreen-player-dialog" aria-label="全屏音乐播放器">
-    <div class="fullscreen-player">
+  <el-dialog v-model="open" fullscreen :show-close="false" append-to-body class="fullscreen-player-dialog" aria-label="全屏音乐播放器" @opened="enterNativeFullscreen">
+    <div class="fullscreen-player" :class="{ 'is-idle': idleHidden }" @pointermove="wakeControls" @wheel="wakeControls" @touchstart="wakeControls" @keydown="wakeControls">
       <div class="fullscreen-player-backdrop" :style="coverBackground" aria-hidden="true" />
       <header class="fullscreen-player-header">
         <button type="button" class="fullscreen-round-button" aria-label="收起全屏播放器" @click="open = false"><el-icon><ArrowDown /></el-icon></button>
@@ -100,7 +158,7 @@ function scrollToLyric(index, behavior) {
       </div>
       <div v-else class="fullscreen-empty"><strong>先挑一首歌</strong><span>播放后就能在这里查看实时歌词</span></div>
 
-      <footer class="fullscreen-player-controls">
+      <footer class="fullscreen-player-controls" :class="{ 'is-hidden': idleHidden }" :inert="idleHidden || undefined" :aria-hidden="idleHidden ? 'true' : undefined">
         <div class="fullscreen-progress"><span>{{ formatTime(player.currentTime) }}</span><el-slider v-model="progress" :min="0" :max="player.duration || 1" :show-tooltip="false" :disabled="!player.currentSong" aria-label="播放进度" /><span>{{ formatTime(player.duration) }}</span></div>
         <div class="fullscreen-actions">
           <button type="button" aria-label="上一首" :disabled="!player.currentSong" @click="player.previous"><el-icon><ArrowLeftBold /></el-icon></button>

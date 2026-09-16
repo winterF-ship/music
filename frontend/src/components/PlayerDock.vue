@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ArrowLeftBold, ArrowRightBold, Delete, FullScreen, Microphone, Mute, Tickets } from '@element-plus/icons-vue'
 import { Repeat2, Shuffle } from '@lucide/vue'
+import { createPlaybackReporter } from '../utils/playbackReporter'
 import { assetUrl } from '../api/catalog'
 import { usePlayerStore } from '../stores/player'
 import MediaCover from './MediaCover.vue'
@@ -9,6 +10,9 @@ import PlaybackIcon from './PlaybackIcon.vue'
 import FullscreenPlayer from './FullscreenPlayer.vue'
 
 const player = usePlayerStore()
+const playbackReporter = createPlaybackReporter()
+let lastReportAttempt = 0
+function reportPlaying() { lastReportAttempt = Date.now(); void playbackReporter.playing() }
 const audio = new Audio()
 const audioError = ref(false)
 const queueOpen = ref(false)
@@ -16,7 +20,7 @@ const volumeOpen = ref(false)
 const fullscreenOpen = ref(false)
 const previousVolume = ref(player.volume || 0.75)
 const progress = computed({ get: () => player.currentTime, set: (value) => { audio.currentTime = value; player.currentTime = value } })
-function syncTime() { player.currentTime = audio.currentTime || 0 }
+function syncTime() { player.currentTime = audio.currentTime || 0; if (!audio.paused && !audio.seeking && audio.currentTime > 0 && Date.now() - lastReportAttempt > 10000) reportPlaying() }
 function syncDuration() { player.duration = Number.isFinite(audio.duration) ? audio.duration : 0 }
 function fail() { audioError.value = true; player.isPlaying = false }
 async function attemptPlay() {
@@ -26,12 +30,14 @@ async function attemptPlay() {
     else fail()
   }
 }
+audio.addEventListener('playing', reportPlaying)
 audio.addEventListener('timeupdate', syncTime)
 audio.addEventListener('loadedmetadata', syncDuration)
 audio.addEventListener('ended', player.handleEnded)
 audio.addEventListener('error', fail)
 
-watch(() => player.currentSong?.id, () => {
+watch(() => [player.currentSong?.id, player.playbackVersion], () => {
+  playbackReporter.start(player.currentSong?.id)
   audioError.value = false
   const source = assetUrl(player.currentSong?.audioUrl)
   if (!source) {
@@ -50,7 +56,7 @@ watch(() => player.seekVersion, () => {
   if (!audio.src) return
   audio.currentTime = player.currentTime
 })
-onBeforeUnmount(() => { audio.pause(); audio.removeEventListener('timeupdate', syncTime); audio.removeEventListener('loadedmetadata', syncDuration); audio.removeEventListener('ended', player.handleEnded); audio.removeEventListener('error', fail) })
+onBeforeUnmount(() => { audio.pause(); audio.removeEventListener('playing', reportPlaying); audio.removeEventListener('timeupdate', syncTime); audio.removeEventListener('loadedmetadata', syncDuration); audio.removeEventListener('ended', player.handleEnded); audio.removeEventListener('error', fail) })
 function formatTime(value) { if (!Number.isFinite(value)) return '0:00'; return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` }
 function toggleMute() {
   if (player.volume > 0) { previousVolume.value = player.volume; player.setVolume(0) }
@@ -59,7 +65,7 @@ function toggleMute() {
 </script>
 
 <template>
-  <aside class="player-dock" aria-label="音乐播放器">
+  <aside class="player-dock" :class="{ 'is-playing': player.isPlaying && player.currentSong && !audioError }" aria-label="音乐播放器">
     <div class="player-track"><MediaCover :src="player.currentSong?.coverUrl" :alt="player.currentSong ? `${player.currentSong.title}封面` : ''" :label="player.currentSong?.title || '回'" /><div class="player-copy"><strong>{{ player.currentSong?.title || '挑一首喜欢的歌' }}</strong><small>{{ audioError ? '音频加载失败，请检查文件地址' : (player.currentSong?.singerName || '播放器已就绪') }}</small></div></div>
     <div class="player-controls">
       <button type="button" class="player-mode-button" :class="{ active: player.shuffleEnabled }" :aria-label="player.shuffleEnabled ? '关闭随机播放' : '开启随机播放'" :aria-pressed="player.shuffleEnabled" :disabled="player.queue.length < 2" @click="player.toggleShuffle"><Shuffle aria-hidden="true" /></button>
