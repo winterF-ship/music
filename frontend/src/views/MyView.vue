@@ -8,6 +8,8 @@ import { useFavoriteStore } from '../stores/favorites'
 import { useUserPlaylistStore } from '../stores/playlists'
 import MediaCover from '../components/MediaCover.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
+import AdminImageUpload from '../components/AdminImageUpload.vue'
+import { uploadPlaylistCover } from '../api/user'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -19,8 +21,9 @@ const playlistsLoading = computed(() => userPlaylists.loading)
 const playlistsFailed = computed(() => Boolean(userPlaylists.lastError))
 const playlistDialogOpen = ref(false)
 const playlistSaving = ref(false)
+const editingPlaylistId = ref(null)
 const playlistFormRef = ref()
-const playlistForm = reactive({ name: '', description: '' })
+const playlistForm = reactive({ name: '', coverUrl: '', description: '' })
 const displayName = computed(() => auth.profile?.nickname || auth.session?.nickname || '音乐朋友')
 const playlistRules = {
   name: [{ required: true, message: '请输入歌单名称', trigger: 'blur' }, { max: 150, message: '歌单名称不能超过 150 个字符', trigger: 'blur' }],
@@ -37,20 +40,35 @@ async function loadUserPlaylists() {
 }
 
 function openPlaylistDialog() {
-  Object.assign(playlistForm, { name: '', description: '' })
+  editingPlaylistId.value = null
+  Object.assign(playlistForm, { name: '', coverUrl: '', description: '' })
   playlistDialogOpen.value = true
+}
+
+function openEditPlaylistDialog(item) {
+  editingPlaylistId.value = item.id
+  Object.assign(playlistForm, { name: item.name ?? '', coverUrl: item.coverUrl ?? '', description: item.description ?? '' })
+  playlistDialogOpen.value = true
+}
+
+function handlePlaylistDialogClosed() {
+  playlistFormRef.value?.clearValidate()
+  editingPlaylistId.value = null
 }
 
 async function savePlaylist() {
   const valid = await playlistFormRef.value?.validate().catch(() => false)
   if (!valid || playlistSaving.value) return
   playlistSaving.value = true
+  const editing = editingPlaylistId.value !== null
   try {
-    await userPlaylists.create({ name: playlistForm.name.trim(), description: playlistForm.description.trim() })
+    const payload = { name: playlistForm.name.trim(), coverUrl: playlistForm.coverUrl.trim(), description: playlistForm.description.trim() }
+    if (editing) await userPlaylists.update(editingPlaylistId.value, payload)
+    else await userPlaylists.create(payload)
     playlistDialogOpen.value = false
-    ElMessage.success('歌单已创建')
+    ElMessage.success(editing ? '歌单已保存' : '歌单已创建')
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || error.message || '歌单创建失败，请稍后重试')
+    ElMessage.error(error.response?.data?.message || error.message || (editing ? '歌单保存失败，请稍后重试' : '歌单创建失败，请稍后重试'))
   } finally { playlistSaving.value = false }
 }
 
@@ -80,7 +98,7 @@ onMounted(() => { void Promise.all([load(), loadUserPlaylists()]) })
       <div class="section-title"><div><span class="eyebrow">MY PLAYLISTS</span><h2>我创建的歌单</h2></div><el-button class="create-playlist-button" type="primary" round :icon="Plus" @click="openPlaylistDialog">添加歌单</el-button></div>
       <div v-loading="playlistsLoading" class="playlist-section-body">
         <div v-if="playlistsFailed" class="api-error"><div><strong>我的歌单加载失败</strong><p>请检查网络连接后重试。</p></div><el-button :icon="Refresh" round @click="loadUserPlaylists">重试</el-button></div>
-        <div v-else-if="playlists.length" class="media-grid catalog-grid"><PlaylistCard v-for="item in playlists" :key="item.id" :item="item" /></div>
+        <div v-else-if="playlists.length" class="media-grid catalog-grid"><PlaylistCard v-for="item in playlists" :key="item.id" :item="item" editable @edit="openEditPlaylistDialog" /></div>
         <el-empty v-else-if="!playlistsLoading" description="还没有创建歌单，先收集一份属于自己的声音吧"><el-button type="primary" round :icon="Plus" @click="openPlaylistDialog">创建第一张歌单</el-button></el-empty>
       </div>
     </section>
@@ -92,13 +110,14 @@ onMounted(() => { void Promise.all([load(), loadUserPlaylists()]) })
       <el-empty v-else-if="!favorites.loading" description="还没有收藏歌单，去歌单广场看看吧"><el-button type="primary" round @click="router.push('/playlists')">浏览歌单</el-button></el-empty>
     </section>
 
-    <el-dialog v-model="playlistDialogOpen" class="my-playlist-dialog" title="添加歌单" width="500px" @closed="playlistFormRef?.clearValidate()">
-      <p class="playlist-dialog-copy">给这段声音起个名字，之后可以在这里继续收集喜欢的歌曲。</p>
+    <el-dialog v-model="playlistDialogOpen" class="my-playlist-dialog" :title="editingPlaylistId === null ? '添加歌单' : '编辑歌单'" width="500px" @closed="handlePlaylistDialogClosed">
+      <p class="playlist-dialog-copy">{{ editingPlaylistId === null ? '给这段声音起个名字，之后可以在这里继续收集喜欢的歌曲。' : '修改歌单名称、封面或简介，保存后立即更新。' }}</p>
       <el-form ref="playlistFormRef" :model="playlistForm" :rules="playlistRules" label-position="top" novalidate @submit.prevent="savePlaylist">
         <el-form-item label="歌单名称" prop="name"><el-input v-model="playlistForm.name" maxlength="150" show-word-limit autofocus placeholder="例如：夜晚散步听什么" /></el-form-item>
+        <el-form-item label="歌单封面"><AdminImageUpload v-model="playlistForm.coverUrl" label="歌单封面" :upload-request="uploadPlaylistCover" /><el-input v-model="playlistForm.coverUrl" maxlength="255" placeholder="也可填写图片地址" /></el-form-item>
         <el-form-item label="歌单简介" prop="description"><el-input v-model="playlistForm.description" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="写下这张歌单想留住的情绪（可选）" /></el-form-item>
       </el-form>
-      <template #footer><el-button @click="playlistDialogOpen = false">取消</el-button><el-button type="primary" native-type="submit" :loading="playlistSaving" @click="savePlaylist">创建歌单</el-button></template>
+      <template #footer><el-button @click="playlistDialogOpen = false">取消</el-button><el-button type="primary" native-type="submit" :loading="playlistSaving" @click="savePlaylist">{{ editingPlaylistId === null ? '创建歌单' : '保存修改' }}</el-button></template>
     </el-dialog>
   </section>
 </template>

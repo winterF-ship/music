@@ -47,6 +47,16 @@ public class UserPlaylistService {
     }
 
     @Transactional
+    public SongList update(Long userId, Long playlistId, SongListRequest request) {
+        SongList playlist = requireOwnedPlaylist(userId, playlistId);
+        playlist.setName(request.getName().trim());
+        playlist.setCoverUrl(blankToNull(request.getCoverUrl()));
+        playlist.setDescription(blankToNull(request.getDescription()));
+        songListMapper.updateById(playlist);
+        return playlist;
+    }
+
+    @Transactional
     public PlaylistDetailResponse addSong(Long userId, Long playlistId, PlaylistSongRequest request) {
         SongList playlist = requireOwnedPlaylist(userId, playlistId);
         Song song = songMapper.selectById(request.getSongId());

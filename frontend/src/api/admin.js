@@ -83,10 +83,11 @@ export async function uploadLyrics(file, onProgress) {
   return data
 }
 
-export async function uploadImage(file, onProgress) {
+export async function uploadImage(file, onProgress, signal) {
   const form = new FormData()
   form.append('image', file)
   const { data } = await api.post('/admin/uploads/image', form, {
+    signal,
     onUploadProgress: (event) => {
       if (event.total && onProgress) onProgress(Math.round((event.loaded / event.total) * 100))
     },
@@ -160,6 +161,11 @@ export async function uploadBannerImage(file) {
 
 export async function fetchAnalyticsSummary() {
   const { data } = await api.get('/admin/analytics/summary')
+  return data
+}
+
+export async function fetchDashboardSummary() {
+  const { data } = await api.get('/admin/dashboard/summary')
   return data
 }
 

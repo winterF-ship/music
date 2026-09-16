@@ -37,7 +37,7 @@
 .lyric-line { position:relative; width:100%; padding:9px 0 9px 16px; color:rgba(239,255,240,.28); font-family:inherit; font-size:clamp(17px,1.75vw,22px); font-weight:560; line-height:1.55; text-align:left; border:0; border-left:2px solid transparent; background:transparent; cursor:pointer; transition:color .2s ease,border-color .2s ease,opacity .2s ease; }
 .lyric-line:hover { color:rgba(239,255,240,.68); }
 .lyric-line.passed { color:rgba(239,255,240,.18); }
-.lyric-line.active { color:#f3fee7; border-left-color:#6ed3cf; font-size:clamp(21px,2.2vw,29px); font-weight:720; }
+.lyric-line.active { color:#e9f8f5; border-left-color:#6ed3cf; font-size:clamp(21px,2.2vw,29px); font-weight:720; }
 .lyrics-state,.fullscreen-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--fullscreen-muted); text-align:center; }
 .lyrics-state strong,.fullscreen-empty strong { color:var(--fullscreen-ink); font-size:22px; }
 .lyrics-state .el-icon { color:#6ed3cf; font-size:28px; }
@@ -47,11 +47,11 @@
 .fullscreen-progress span:last-child { text-align:right; }
 .fullscreen-progress .el-slider__runway { background:rgba(239,255,240,.16); }
 .fullscreen-progress .el-slider__bar { background:#6ed3cf; }
-.fullscreen-progress .el-slider__button { width:14px; height:14px; border:0; background:#f3fee7; }
+.fullscreen-progress .el-slider__button { width:14px; height:14px; border:0; background:#e9f8f5; }
 .fullscreen-actions { display:flex; align-items:center; justify-content:center; gap:18px; }
 .fullscreen-actions button { width:42px; height:42px; }
 .fullscreen-actions button:disabled { opacity:.35; cursor:not-allowed; }
-.fullscreen-actions .fullscreen-play-button { width:60px; height:60px; color:#294847; border-color:rgba(243,254,231,.45); background:#6ed3cf; box-shadow:0 12px 28px rgba(4,24,23,.28); }
+.fullscreen-actions .fullscreen-play-button { width:60px; height:60px; color:#294847; border-color:rgba(233,248,245,.45); background:#6ed3cf; box-shadow:0 12px 28px rgba(4,24,23,.28); }
 .lyric-upload-field { width:100%; display:flex; align-items:center; gap:10px; }
 .lyric-upload-field + .el-progress { width:100%; margin-top:10px; }
 .table-muted { color:var(--el-text-color-placeholder); }

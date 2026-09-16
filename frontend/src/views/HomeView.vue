@@ -28,7 +28,7 @@ onMounted(load)
 <template>
   <div class="home-page" v-loading="loading">
     <section class="home-hero">
-      <el-carousel v-if="banners.length" height="430px" indicator-position="outside" arrow="always">
+      <el-carousel v-if="banners.length" height="430px" indicator-position="outside" arrow="always" :autoplay="true" :pause-on-hover="false" :interval="3000">
         <el-carousel-item v-for="banner in banners" :key="banner.id"><div class="hero-slide" :style="banner.imageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(8,11,24,.9), rgba(8,11,24,.2)), url(${assetUrl(banner.imageUrl)})` } : {}"><div><span class="eyebrow">FEATURED NOW</span><h1>{{ banner.title }}</h1><p>让声音接管此刻，用一段旋律打开今天。</p><el-button type="primary" size="large" round @click="$router.push(banner.targetUrl || '/playlists')">立即探索<el-icon><ArrowRight /></el-icon></el-button></div></div></el-carousel-item>
       </el-carousel>
       <div v-else class="hero-slide hero-default"><div><span class="eyebrow">ECHO MUSIC</span><h1>让此刻，<br /><em>有自己的声音。</em></h1><p>发现新的歌单与熟悉的歌手。内容会随后台上架实时更新。</p><el-button v-if="latestSongs.length" type="primary" size="large" round @click="player.playAll(latestSongs)"><el-icon><VideoPlay /></el-icon>播放最新歌曲</el-button><el-button v-else type="primary" size="large" round @click="$router.push('/playlists')">浏览歌单</el-button></div><div class="hero-orbit" aria-hidden="true"><span>♪</span></div></div>

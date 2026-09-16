@@ -2,6 +2,7 @@ package com.musicdemo1.controller;
 
 import com.musicdemo1.common.ApiResponse;
 import com.musicdemo1.dto.FavoriteStateResponse;
+import com.musicdemo1.dto.FileUploadResponse;
 import com.musicdemo1.dto.PlaylistDetailResponse;
 import com.musicdemo1.dto.PlaylistSongRequest;
 import com.musicdemo1.dto.SongListRequest;
@@ -105,6 +106,19 @@ public class UserController {
     public ApiResponse<SongList> createPlaylist(Authentication authentication,
             @Valid @RequestBody SongListRequest request) {
         return ApiResponse.ok(playlistService.create(userId(authentication), request));
+    }
+
+    @PutMapping("/playlists/{playlistId}")
+    public ApiResponse<SongList> updatePlaylist(Authentication authentication,
+            @PathVariable Long playlistId, @Valid @RequestBody SongListRequest request) {
+        return ApiResponse.ok(playlistService.update(userId(authentication), playlistId, request));
+    }
+
+    @PostMapping(value = "/playlists/upload/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<FileUploadResponse> uploadPlaylistCover(Authentication authentication,
+            @RequestParam("cover") MultipartFile cover) {
+        userId(authentication);
+        return ApiResponse.ok(fileStorageService.storeImage(cover));
     }
 
     @PostMapping("/playlists/{playlistId}/songs")

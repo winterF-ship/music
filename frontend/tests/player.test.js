@@ -29,6 +29,31 @@ describe('播放器队列', () => {
     expect(player.currentSong.id).toBe(1)
   })
 
+  it('队列自然播放结束时按循环模式决定是否回到开头', () => {
+    const player = usePlayerStore()
+    player.playAll(tracks)
+    player.playAt(2)
+    player.duration = 180
+    player.handleEnded()
+    expect(player.currentSong.id).toBe(3)
+    expect(player.isPlaying).toBe(false)
+
+    player.toggleRepeat()
+    player.handleEnded()
+    expect(player.currentSong.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('随机和循环模式可独立切换', () => {
+    const player = usePlayerStore()
+    expect(player.shuffleEnabled).toBe(false)
+    expect(player.repeatEnabled).toBe(false)
+    player.toggleShuffle()
+    player.toggleRepeat()
+    expect(player.shuffleEnabled).toBe(true)
+    expect(player.repeatEnabled).toBe(true)
+  })
+
   it('移除当前歌曲后继续定位到剩余歌曲', () => {
     const player = usePlayerStore()
     player.playAll(tracks)

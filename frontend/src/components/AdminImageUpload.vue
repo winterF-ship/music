@@ -10,12 +10,14 @@ const props = defineProps({
   modelValue: { type: String, default: '' },
   label: { type: String, default: '图片' },
   round: { type: Boolean, default: false },
+  uploadRequest: { type: Function, default: uploadImage },
 })
 const emit = defineEmits(['update:modelValue'])
 
 const uploading = ref(false)
 const progress = ref(0)
 const errorMessage = ref('')
+const abortController = ref(null)
 const previewUrl = computed(() => resolveAssetUrl(props.modelValue, api.defaults.baseURL))
 
 async function uploadFile(options) {
@@ -29,20 +31,33 @@ async function uploadFile(options) {
   uploading.value = true
   progress.value = 0
   errorMessage.value = ''
+  const controller = new AbortController()
+  abortController.value = controller
   try {
-    const result = await uploadImage(options.file, (value) => { progress.value = value })
-    if (result.code !== 200) throw new Error(result.message)
-    emit('update:modelValue', result.data.url)
+    const result = await props.uploadRequest(options.file, (value) => { progress.value = value }, controller.signal)
+    const imageUrl = result?.url || result?.data?.url
+    if (!imageUrl) throw new Error(result?.message || '上传接口没有返回图片地址')
+    emit('update:modelValue', imageUrl)
     progress.value = 100
-    options.onSuccess(result.data)
+    options.onSuccess(result?.data || result)
     ElMessage.success(`${props.label}上传完成`)
   } catch (error) {
-    const message = error.response?.data?.message || (error instanceof Error ? error.message : `${props.label}上传失败`)
-    errorMessage.value = `${message}，请重新选择图片`
-    options.onError(new Error(message))
+    if (controller.signal.aborted || error?.code === 'ERR_CANCELED') {
+      errorMessage.value = '上传已取消，可重新选择图片'
+      options.onError(error)
+    } else {
+      const message = error.response?.data?.message || (error instanceof Error ? error.message : `${props.label}上传失败`)
+      errorMessage.value = `${message}，可重新选择图片`
+      options.onError(new Error(message))
+    }
   } finally {
+    if (abortController.value === controller) abortController.value = null
     uploading.value = false
   }
+}
+
+function cancelUpload() {
+  abortController.value?.abort()
 }
 </script>
 
@@ -64,7 +79,10 @@ async function uploadFile(options) {
         </el-button>
       </el-upload>
       <small class="upload-hint">JPG / PNG / GIF / WebP · 不超过 10MB</small>
-      <el-progress v-if="uploading" :percentage="progress" :show-text="false" :stroke-width="5" />
+      <div v-if="uploading" class="upload-progress-row">
+        <el-progress :percentage="progress" :show-text="false" :stroke-width="5" />
+        <el-button link type="info" size="small" @click="cancelUpload">取消上传</el-button>
+      </div>
       <p v-if="errorMessage" class="upload-error" role="alert">{{ errorMessage }}</p>
     </div>
   </div>

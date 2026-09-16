@@ -1,12 +1,11 @@
 <script setup>
-import { VideoPlay } from '@element-plus/icons-vue'
 import { usePlayerStore } from '../stores/player'
 import MediaCover from './MediaCover.vue'
 import FavoriteButton from './FavoriteButton.vue'
 import AddToPlaylistButton from './AddToPlaylistButton.vue'
+import PlaybackIcon from './PlaybackIcon.vue'
 const props = defineProps({ songs: { type: Array, default: () => [] }, emptyText: { type: String, default: '这里还没有歌曲' } })
 const player = usePlayerStore()
-function timeText(seconds) { if (!seconds) return '--:--'; const value = Math.round(seconds); return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}` }
 </script>
 <template>
   <div v-if="songs.length" class="song-list">
@@ -15,8 +14,7 @@ function timeText(seconds) { if (!seconds) return '--:--'; const value = Math.ro
         <span class="song-index">{{ String(index + 1).padStart(2, '0') }}</span>
         <MediaCover :src="song.coverUrl" :alt="`${song.title}封面`" :label="song.title" />
         <span class="song-copy"><strong>{{ song.title }}</strong><small>{{ song.singerName || '未知歌手' }}</small></span>
-        <span class="song-duration">{{ timeText(song.duration) }}</span>
-        <span class="song-play" aria-hidden="true"><el-icon><VideoPlay /></el-icon></span>
+        <span class="song-play" aria-hidden="true"><PlaybackIcon /></span>
       </button>
       <div class="song-row-actions"><AddToPlaylistButton :song="song" /><FavoriteButton kind="song" :item="song" /></div>
     </div>

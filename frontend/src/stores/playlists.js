@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { addSongToUserPlaylist, createUserPlaylist, fetchUserPlaylists } from '../api/user'
+import { addSongToUserPlaylist, createUserPlaylist, fetchUserPlaylists, updateUserPlaylist } from '../api/user'
 import { useAuthStore } from './auth'
 
 export const useUserPlaylistStore = defineStore('user-playlists', () => {
@@ -45,6 +45,12 @@ export const useUserPlaylistStore = defineStore('user-playlists', () => {
     return created
   }
 
+  async function update(playlistId, payload) {
+    const updated = await updateUserPlaylist(playlistId, payload)
+    items.value = items.value.map((item) => item.id === playlistId ? updated : item)
+    return updated
+  }
+
   async function addSong(playlistId, songId) {
     if (isBusy(playlistId, songId)) return null
     setBusy(playlistId, songId, true)
@@ -59,5 +65,5 @@ export const useUserPlaylistStore = defineStore('user-playlists', () => {
     busyKeys.value = []
   }
 
-  return { items, loading, lastError, hasPlaylists, load, create, addSong, reset }
+  return { items, loading, lastError, hasPlaylists, load, create, update, addSong, reset }
 })

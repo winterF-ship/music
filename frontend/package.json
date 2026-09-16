@@ -15,6 +15,7 @@
     "vitest": "^5.0.0"
   },
   "dependencies": {
+    "@lucide/vue": "^1.46.0",
     "axios": "^1.20.0",
     "echarts": "^6.1.0",
     "element-plus": "^2.14.5",
