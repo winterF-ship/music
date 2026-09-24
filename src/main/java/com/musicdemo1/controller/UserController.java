@@ -3,6 +3,8 @@ package com.musicdemo1.controller;
 import com.musicdemo1.common.ApiResponse;
 import com.musicdemo1.dto.FavoriteStateResponse;
 import com.musicdemo1.dto.FileUploadResponse;
+import com.musicdemo1.dto.ListenRecordRequest;
+import com.musicdemo1.dto.ListenSummaryResponse;
 import com.musicdemo1.dto.PlaylistDetailResponse;
 import com.musicdemo1.dto.PlaylistSongRequest;
 import com.musicdemo1.dto.SongListRequest;
@@ -13,6 +15,7 @@ import com.musicdemo1.entity.SongList;
 import com.musicdemo1.service.FileStorageService;
 import com.musicdemo1.service.UserAccountService;
 import com.musicdemo1.service.UserFavoriteService;
+import com.musicdemo1.service.UserListenService;
 import com.musicdemo1.service.UserPlaylistService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -35,13 +38,16 @@ public class UserController {
     private final UserAccountService accountService;
     private final UserFavoriteService favoriteService;
     private final UserPlaylistService playlistService;
+    private final UserListenService listenService;
     private final FileStorageService fileStorageService;
 
     public UserController(UserAccountService accountService, UserFavoriteService favoriteService,
-            UserPlaylistService playlistService, FileStorageService fileStorageService) {
+            UserPlaylistService playlistService, UserListenService listenService,
+            FileStorageService fileStorageService) {
         this.accountService = accountService;
         this.favoriteService = favoriteService;
         this.playlistService = playlistService;
+        this.listenService = listenService;
         this.fileStorageService = fileStorageService;
     }
 
@@ -95,6 +101,18 @@ public class UserController {
     public ApiResponse<FavoriteStateResponse> removeFavoritePlaylist(Authentication authentication,
             @PathVariable Long playlistId) {
         return ApiResponse.ok(favoriteService.removePlaylist(userId(authentication), playlistId));
+    }
+
+    @PostMapping("/listen-records")
+    public ApiResponse<Void> recordListen(Authentication authentication,
+            @Valid @RequestBody ListenRecordRequest request) {
+        listenService.record(userId(authentication), request.sessionId(), request.songId(), request.seconds());
+        return ApiResponse.ok(null);
+    }
+
+    @GetMapping("/listen-records/summary")
+    public ApiResponse<ListenSummaryResponse> listenSummary(Authentication authentication) {
+        return ApiResponse.ok(new ListenSummaryResponse(listenService.totalSeconds(userId(authentication))));
     }
 
     @GetMapping("/playlists")

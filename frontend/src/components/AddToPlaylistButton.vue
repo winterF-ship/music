@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { ListPlus } from '@lucide/vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUserPlaylistStore } from '../stores/playlists'
@@ -55,7 +56,7 @@ function goCreatePlaylist() {
 
 <template>
   <button class="add-to-playlist-button" type="button" :aria-label="actionLabel" :title="actionLabel" @click.stop="openDialog">
-    <el-icon><Plus /></el-icon>
+    <ListPlus aria-hidden="true" :size="18" :stroke-width="2.1" />
   </button>
   <el-dialog v-model="dialogOpen" class="add-to-playlist-dialog" title="添加到歌单" width="440px">
     <p class="playlist-dialog-copy">选择一张自己的歌单，把这首歌收进去。</p>

@@ -5,17 +5,22 @@ import { Plus, Refresh, User } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useFavoriteStore } from '../stores/favorites'
+import { usePlayerStore } from '../stores/player'
 import { useUserPlaylistStore } from '../stores/playlists'
 import MediaCover from '../components/MediaCover.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
 import AdminImageUpload from '../components/AdminImageUpload.vue'
-import { uploadPlaylistCover } from '../api/user'
+import AddToPlaylistButton from '../components/AddToPlaylistButton.vue'
+import FavoriteButton from '../components/FavoriteButton.vue'
+import { fetchListenSummary, uploadPlaylistCover } from '../api/user'
 
 const router = useRouter()
 const auth = useAuthStore()
 const favorites = useFavoriteStore()
+const player = usePlayerStore()
 const userPlaylists = useUserPlaylistStore()
 const failed = ref(false)
+const listenMinutes = ref(null)
 const playlists = computed(() => userPlaylists.items)
 const playlistsLoading = computed(() => userPlaylists.loading)
 const playlistsFailed = computed(() => Boolean(userPlaylists.lastError))
@@ -37,6 +42,25 @@ async function load() {
 
 async function loadUserPlaylists() {
   try { await userPlaylists.load(true) } catch { /* inline error state is rendered below */ }
+}
+
+// 收听时长取后端累计值：加载中或失败时显示占位符，不用假数据顶替。
+async function loadListenSummary() {
+  listenMinutes.value = null
+  try {
+    const summary = await fetchListenSummary()
+    listenMinutes.value = Math.max(0, Math.floor((Number(summary?.totalSeconds) || 0) / 60))
+  } catch { listenMinutes.value = '--' }
+}
+
+function playFavoriteSong(song) {
+  player.playSong(song, favorites.songs)
+}
+
+function formatDuration(value) {
+  const seconds = Number(value)
+  if (!Number.isFinite(seconds) || seconds <= 0) return '--'
+  return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
 function openPlaylistDialog() {
@@ -72,7 +96,7 @@ async function savePlaylist() {
   } finally { playlistSaving.value = false }
 }
 
-onMounted(() => { void Promise.all([load(), loadUserPlaylists()]) })
+onMounted(() => { void Promise.all([load(), loadUserPlaylists(), loadListenSummary()]) })
 </script>
 
 <template>
@@ -89,9 +113,10 @@ onMounted(() => { void Promise.all([load(), loadUserPlaylists()]) })
       <button class="my-profile-link" type="button" @click="router.push('/profile')"><el-icon><User /></el-icon>编辑资料</button>
     </header>
 
-    <div class="my-stats" aria-label="我的收藏概览">
+    <div class="my-stats" aria-label="我的收藏与收听概览">
       <div><strong>{{ favorites.playlists.length }}</strong><span>收藏歌单</span></div>
       <div><strong>{{ favorites.songs.length }}</strong><span>收藏歌曲</span></div>
+      <div><strong>{{ listenMinutes === null ? '--' : listenMinutes }}</strong><span>累计收听（分钟）</span></div>
     </div>
 
     <section class="my-collection-section">
@@ -101,6 +126,21 @@ onMounted(() => { void Promise.all([load(), loadUserPlaylists()]) })
         <div v-else-if="playlists.length" class="media-grid catalog-grid"><PlaylistCard v-for="item in playlists" :key="item.id" :item="item" editable @edit="openEditPlaylistDialog" /></div>
         <el-empty v-else-if="!playlistsLoading" description="还没有创建歌单，先收集一份属于自己的声音吧"><el-button type="primary" round :icon="Plus" @click="openPlaylistDialog">创建第一张歌单</el-button></el-empty>
       </div>
+    </section>
+
+    <section class="my-collection-section">
+      <div class="section-title"><div><span class="eyebrow">SAVED SONGS</span><h2>我收藏的歌曲</h2></div><RouterLink to="/favorites">查看全部 <span aria-hidden="true">↗</span></RouterLink></div>
+      <el-table v-if="favorites.songs.length" :data="favorites.songs" class="my-song-table" empty-text="还没有收藏歌曲">
+        <el-table-column label="歌曲" min-width="240">
+          <template #default="{ row }">
+            <button class="my-song-cell" type="button" :aria-label="`播放${row.title}`" @click="playFavoriteSong(row)"><MediaCover :src="row.coverUrl" :alt="`${row.title}封面`" :label="row.title" /><strong>{{ row.title }}</strong></button>
+          </template>
+        </el-table-column>
+        <el-table-column label="歌手" min-width="150"><template #default="{ row }">{{ row.singerName || '未知歌手' }}</template></el-table-column>
+        <el-table-column label="时长" width="90"><template #default="{ row }">{{ formatDuration(row.duration) }}</template></el-table-column>
+        <el-table-column label="操作" width="120" align="right"><template #default="{ row }"><span class="song-actions-inline"><AddToPlaylistButton :song="row" /><FavoriteButton kind="song" :item="row" /></span></template></el-table-column>
+      </el-table>
+      <el-empty v-else-if="!favorites.loading" description="还没有收藏歌曲，去发现页挑一首吧"><el-button type="primary" round @click="router.push('/')">去发现音乐</el-button></el-empty>
     </section>
 
     <section class="my-collection-section">

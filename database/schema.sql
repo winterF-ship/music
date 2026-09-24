@@ -114,6 +114,22 @@ CREATE TABLE IF NOT EXISTS `play_history` (
   CONSTRAINT `fk_play_history_song` FOREIGN KEY (`song_id`) REFERENCES `song` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户最近播放记录';
 
+CREATE TABLE IF NOT EXISTS `user_listen_record` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `session_id` CHAR(36) NOT NULL COMMENT '一次播放会话的编号',
+  `user_id` BIGINT NOT NULL,
+  `song_id` BIGINT DEFAULT NULL,
+  `listened_seconds` INT NOT NULL DEFAULT 0 COMMENT '该会话累计收听秒数',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_listen_record_session` (`session_id`),
+  KEY `idx_user_listen_record_user` (`user_id`),
+  KEY `idx_user_listen_record_song` (`song_id`),
+  CONSTRAINT `fk_user_listen_record_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_user_listen_record_song` FOREIGN KEY (`song_id`) REFERENCES `song` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户收听时长记录';
+
 CREATE TABLE IF NOT EXISTS `banner` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `title` VARCHAR(150) NOT NULL,

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Star, StarFilled } from '@element-plus/icons-vue'
+import { Heart } from '@lucide/vue'
 import { useAuthStore } from '../stores/auth'
 import { useFavoriteStore } from '../stores/favorites'
 
@@ -36,8 +36,8 @@ async function toggle() {
 </script>
 
 <template>
-  <button class="favorite-button" :class="{ active, 'with-label': labelVisible }" type="button" :aria-label="actionLabel" :title="actionLabel" :disabled="busy" @click.stop="toggle">
-    <el-icon><StarFilled v-if="active" /><Star v-else /></el-icon>
+  <button class="favorite-button" :class="{ active, 'with-label': labelVisible }" type="button" :aria-label="actionLabel" :title="actionLabel" :aria-pressed="active" :disabled="busy" @click.stop="toggle">
+    <Heart aria-hidden="true" :size="18" :stroke-width="2.1" :fill="active ? 'currentColor' : 'none'" />
     <span v-if="labelVisible">{{ active ? '已收藏' : '收藏' }}</span>
   </button>
 </template>

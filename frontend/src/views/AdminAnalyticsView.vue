@@ -17,6 +17,8 @@ let pieChart = null
 const totalPlays = computed(() => plays.value.reduce((total, item) => total + Number(item.value || 0), 0))
 
 const chartColors = ['#6d4fe0', '#8b72ea', '#a892f0', '#b8a8f4', '#6d9de0', '#72bfc1', '#e2a85c', '#df7f96']
+// 柱状图单独一套：饼图调色板前 5 色同属紫系，相邻柱并排时难以区分，故按色相分离排列
+const barColors = ['#6d4fe0', '#2fb3a3', '#e8a33d', '#4a90d9', '#e4708a', '#8fbf4f', '#a54fbf', '#d9694f']
 
 function renderChart() {
   if (!distribution.value.length) { barChart?.dispose(); barChart = null }
@@ -25,12 +27,17 @@ function renderChart() {
   if (chartRef.value) {
     barChart ??= echarts.init(chartRef.value)
     barChart.setOption({
-      color: ['#6d4fe0'],
       grid: { top: 24, right: 28, bottom: 48, left: 54 },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: { type: 'category', data: distribution.value.map((item) => item.label), axisLabel: { color: '#766f8a', interval: 0, rotate: distribution.value.length > 5 ? 25 : 0 } },
       yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#766f8a' }, splitLine: { lineStyle: { color: '#eeeaf5' } } },
-      series: [{ name: '歌曲数', type: 'bar', barMaxWidth: 42, data: distribution.value.map((item) => item.value), itemStyle: { borderRadius: [8, 8, 0, 0] } }],
+      series: [{
+        name: '歌曲数',
+        type: 'bar',
+        barMaxWidth: 42,
+        data: distribution.value.map((item, index) => ({ value: item.value, itemStyle: { color: barColors[index % barColors.length] } })),
+        itemStyle: { borderRadius: [8, 8, 0, 0] },
+      }],
     })
   }
 
